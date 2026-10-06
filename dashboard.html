@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Amazon 注文履歴</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <main class="container">
+    <header class="page-header">
+      <h1>Amazon 注文履歴</h1>
+      <div class="sync">
+        <div class="sync__buttons">
+          <button type="button" id="sync-recent">最新分を同期</button>
+          <button type="button" id="sync-full" class="secondary">全期間を同期</button>
+          <button type="button" id="sync-abort" class="secondary" hidden>中止</button>
+        </div>
+        <p id="sync-status" class="sync__status" aria-live="polite"></p>
+        <p id="sync-error" class="sync__error" role="alert" hidden></p>
+      </div>
+    </header>
+
+    <section class="kpis" aria-label="支出の概要">
+      <div class="kpi">
+        <p class="kpi__label">今月の支出</p>
+        <p class="kpi__value" id="kpi-this-month">—</p>
+        <p class="kpi__sub" id="kpi-this-month-sub"></p>
+      </div>
+      <div class="kpi">
+        <p class="kpi__label">先月の支出</p>
+        <p class="kpi__value kpi__value--secondary" id="kpi-last-month">—</p>
+        <p class="kpi__sub" id="kpi-last-month-sub"></p>
+      </div>
+    </section>
+
+    <section aria-labelledby="monthly-heading">
+      <h2 id="monthly-heading">月別の支出（直近 12 か月）</h2>
+      <p class="hint">棒を押すと、その月の注文だけを下の一覧に表示します。キャンセルした注文は含みません。</p>
+      <div class="chart" id="monthly-chart">
+        <div class="chart__y" id="chart-y" aria-hidden="true"></div>
+        <div class="chart__plot" id="chart-plot"></div>
+        <div class="chart__x" id="chart-x" aria-hidden="true"></div>
+        <div class="chart__tooltip" id="chart-tooltip" role="status" hidden></div>
+      </div>
+      <details class="table-view">
+        <summary>表で見る</summary>
+        <table>
+          <thead><tr><th scope="col">月</th><th scope="col" class="num">支出</th><th scope="col" class="num">注文数</th></tr></thead>
+          <tbody id="monthly-table"></tbody>
+        </table>
+      </details>
+    </section>
+
+    <section aria-labelledby="pending-heading">
+      <h2 id="pending-heading">未配達の注文</h2>
+      <div id="pending-list"></div>
+    </section>
+
+    <section aria-labelledby="orders-heading">
+      <h2 id="orders-heading">注文一覧</h2>
+      <div class="filters">
+        <label>月
+          <select id="filter-month"></select>
+        </label>
+        <label>キーワード
+          <input type="search" id="filter-keyword" placeholder="商品名・注文番号">
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="filter-pending"> 未配達のみ
+        </label>
+      </div>
+      <p id="orders-summary" class="orders-summary" aria-live="polite"></p>
+      <div class="table-scroll">
+        <table class="orders">
+          <thead>
+            <tr>
+              <th scope="col">注文日</th>
+              <th scope="col">商品</th>
+              <th scope="col" class="num">金額</th>
+              <th scope="col">配達状況</th>
+              <th scope="col">詳細</th>
+            </tr>
+          </thead>
+          <tbody id="orders-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script src="parser.js"></script>
+  <script src="db.js"></script>
+  <script src="sync.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

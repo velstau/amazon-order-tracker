@@ -1,0 +1,254 @@
+:root {
+  --color-primary: #005EB8;
+  --color-on-primary: #FFFFFF;
+  --color-text-main: #1A1A1C;
+  --color-text-secondary: #595960;
+  --color-background: #FFFFFF;
+  --color-surface: #F5F5F7;
+  --color-border: #767676;
+  --color-grid: #E3E3E6;
+  --color-bar: #005EB8;
+  --color-bar-muted: #A9C6E8;
+  --color-error: #BA1212;
+  --color-focus: #F5E52B;
+  --spacing-base: 8px;
+  --radius-base: 4px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: #3D8BE0;
+    --color-on-primary: #FFFFFF;
+    --color-text-main: #ECECEE;
+    --color-text-secondary: #B4B4BA;
+    --color-background: #1A1A1C;
+    --color-surface: #26262A;
+    --color-border: #8A8A90;
+    --color-grid: #36363B;
+    --color-bar: #3D8BE0;
+    --color-bar-muted: #2C4E75;
+    --color-error: #FF8A80;
+    color-scheme: dark;
+  }
+}
+
+/* 文字サイズは最低 1.0rem（必須要望）。これより小さい指定はしない */
+body {
+  font-family: "Noto Sans JP", system-ui, -apple-system, sans-serif;
+  font-size: 1rem;
+  color: var(--color-text-main);
+  background-color: var(--color-background);
+  line-height: 1.6;
+  margin: 0;
+  padding: 32px 16px 64px;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+h1 { font-size: 1.75rem; margin: 0; }
+h2 { font-size: 1.25rem; margin: calc(var(--spacing-base) * 5) 0 var(--spacing-base); }
+p { margin: 0; }
+.hint { color: var(--color-text-secondary); margin-bottom: calc(var(--spacing-base) * 2); }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+a { color: var(--color-primary); }
+:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+
+button, select, input { font: inherit; font-size: 1rem; }
+
+button {
+  padding: var(--spacing-base) calc(var(--spacing-base) * 2);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-base);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  cursor: pointer;
+}
+button.secondary { background: transparent; color: var(--color-primary); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+select, input[type="search"] {
+  padding: 6px var(--spacing-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  background: var(--color-background);
+  color: var(--color-text-main);
+}
+
+/* ヘッダと同期 */
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: calc(var(--spacing-base) * 2);
+}
+.sync { display: grid; gap: var(--spacing-base); justify-items: end; }
+.sync__buttons { display: flex; flex-wrap: wrap; gap: var(--spacing-base); justify-content: flex-end; }
+.sync__status { color: var(--color-text-secondary); text-align: right; }
+.sync__error { color: var(--color-error); font-weight: bold; text-align: right; max-width: 36em; }
+
+/* 支出の概要 */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: calc(var(--spacing-base) * 2);
+  margin-top: calc(var(--spacing-base) * 4);
+}
+.kpi {
+  background: var(--color-surface);
+  border-radius: var(--radius-base);
+  padding: calc(var(--spacing-base) * 2) calc(var(--spacing-base) * 3);
+}
+.kpi__label { color: var(--color-text-secondary); }
+.kpi__value { font-size: 2.75rem; font-weight: bold; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.kpi__value--secondary { font-size: 1.75rem; }
+.kpi__sub { color: var(--color-text-secondary); }
+
+/* 月別の棒グラフ：y 軸ラベル | 描画域、その下に x 軸ラベル */
+.chart {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 240px auto;
+}
+.chart__y { position: relative; grid-row: 1; grid-column: 1; min-width: 5.5em; }
+.chart__y span {
+  position: absolute;
+  right: var(--spacing-base);
+  transform: translateY(-50%);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.chart__plot {
+  position: relative;
+  grid-row: 1;
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 2px;
+  border-bottom: 1px solid var(--color-border);
+}
+.chart__grid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--color-grid);
+  pointer-events: none;
+}
+.chart__slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-main);
+  cursor: pointer;
+}
+.chart__slot:hover, .chart__slot[aria-pressed="true"] { background: var(--color-surface); }
+.chart__bar {
+  width: min(28px, 70%);
+  background: var(--color-bar);
+  border-radius: 4px 4px 0 0;
+}
+.chart__plot.has-selection .chart__slot:not([aria-pressed="true"]) .chart__bar { background: var(--color-bar-muted); }
+.chart__label {
+  color: var(--color-text-main);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  margin-bottom: 2px;
+}
+.chart__x {
+  grid-row: 2;
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 2px;
+  padding-top: 4px;
+}
+.chart__x span { text-align: center; color: var(--color-text-secondary); white-space: nowrap; }
+.chart__tooltip {
+  position: absolute;
+  z-index: 1;
+  padding: var(--spacing-base) calc(var(--spacing-base) * 1.5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  background: var(--color-background);
+  color: var(--color-text-main);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* 狭い画面では x 軸ラベルを 1 つおきにする（1rem のまま収めるため） */
+@media (max-width: 640px) {
+  .chart__x span:nth-child(even) { visibility: hidden; }
+  .chart__label { display: none; }
+}
+
+.table-view { margin-top: calc(var(--spacing-base) * 2); }
+.table-view summary { cursor: pointer; color: var(--color-primary); }
+.table-view table { margin-top: var(--spacing-base); }
+
+table { border-collapse: collapse; width: 100%; }
+th, td {
+  padding: var(--spacing-base);
+  border-bottom: 1px solid var(--color-grid);
+  text-align: left;
+  vertical-align: top;
+}
+th { color: var(--color-text-secondary); font-weight: normal; white-space: nowrap; }
+
+/* 未配達 */
+.pending-item {
+  display: flex;
+  gap: calc(var(--spacing-base) * 2);
+  align-items: flex-start;
+  padding: var(--spacing-base) 0;
+  border-bottom: 1px solid var(--color-grid);
+}
+.pending-item__date { min-width: 9em; font-weight: bold; }
+.empty { color: var(--color-text-secondary); }
+
+/* 注文一覧 */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--spacing-base) * 2);
+  align-items: center;
+  margin-bottom: var(--spacing-base);
+}
+.filters label { display: flex; gap: var(--spacing-base); align-items: center; }
+.orders-summary { color: var(--color-text-secondary); margin-bottom: var(--spacing-base); }
+.table-scroll { overflow-x: auto; }
+.orders td:first-child, .orders td:nth-child(3) { white-space: nowrap; }
+
+.items { display: grid; gap: var(--spacing-base); }
+.item { display: flex; gap: var(--spacing-base); align-items: flex-start; }
+.item img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: #FFFFFF;
+  border-radius: var(--radius-base);
+}
+.item a { overflow-wrap: anywhere; }
+.more { color: var(--color-text-secondary); }
+
+/* 状態は色だけでなく文言で示す */
+.status { white-space: nowrap; }
+.status--pending { font-weight: bold; }
+.status--cancelled, .status--returned { color: var(--color-text-secondary); }
+.status__detail { display: block; color: var(--color-text-secondary); white-space: normal; }
+.cancelled-amount { text-decoration: line-through; color: var(--color-text-secondary); }

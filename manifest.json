@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Amazon Order Tracker",
+  "version": "0.2.0",
+  "description": "amazon.co.jp の注文履歴から、月別の支出・注文内容・配達状況を表示します。",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.amazon.co.jp/*"
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "注文履歴トラッカーを開く",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqiXHcdeGSJfUWYXQRgMJ843wsQdX+7+VfHoD0b9V508GEDPFsMXPOfjtVcyuupZe9PKDvcWdbcLja6cgW28BPQggAiIi3h3MADOQREoQShC8yMcrzGm+o2FeMw22Zvcx+mdy4mGGwpQ57koE9/t6W1Sj5mpC8yNHL2cXkPNlGu8X3JNEdcxcvKm0lAuTtCU+0DPWwtnt7vY/NHnXWb7GT20t2sEzw0B9yOIl6YJkdtGGyQqUoc+QjiLzoypMYI+IFfStNU66Bed6g1oYrnP6J364svK/cFAxBbv1wjoEzePGH4cX5LMUXk+QxRwLyu1LoqNRExiyXe3cKp6XtBRQ1wIDAQAB"
+}

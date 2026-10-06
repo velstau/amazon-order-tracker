@@ -1,0 +1,10 @@
+# 個人情報を含む実データ（Amazon の注文履歴 HTML と、それに基づくテストの期待値）
+samples/
+
+# 配布用 zip（scripts/release.py の出力。vel.works に置いて配布する）
+dist/
+
+# 拡張の秘密鍵（manifest の key は公開鍵。秘密鍵はリポジトリの外に置く）
+*.pem
+
+node_modules/
