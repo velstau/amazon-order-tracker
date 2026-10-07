@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Amazon Order Tracker",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "amazon.co.jp の注文履歴から、月別の支出・注文内容・配達状況を表示します。",
   "permissions": [
     "storage"

@@ -36,7 +36,7 @@ docker run --rm -v "$PWD":/src:ro node:24-alpine sh -c 'cp -r /src /w && cd /w \
 - `dashboard.html` が `parser.js` → `db.js` → `sync.js` → `dashboard.js` の順に読み込む。各ファイルは IIFE で 1 つのグローバル（`AmazonParser`・`OrderDB`・`OrderSync`）を公開し、後のファイルがそれを使う。モジュールシステムはない
 - 取得は拡張ページから `fetch(url, { credentials: 'include' })`（host_permissions により Cookie 付きになる）。URL には必ず `disableCsd=no-js` を付ける。付けないと注文カードの中身が暗号化されたページが返り、パーサーは `encrypted: true` を返す。暗号の復号は意図的に実装しない
 - `parser.js` に Amazon の DOM 依存を集約し、セレクタは冒頭の `SELECTORS` にまとめてある。Amazon のページ構造が変わったら、まずここを直す。DOM 構造は推測せず、実際に保存した HTML で確定する
-- 同期は「全期間」（年一覧の全年）と「最新分」（確定済みの注文だけのページに達したら止める）の 2 種類。ページごとに IndexedDB へ `orderId` で upsert するため、途中で止まっても取得済みの分は残る。ページ間に 1.5 秒＋ゆらぎの待機を入れる（`WAIT_MS`）。ダッシュボードを開いたとき、前回の同期の試行から 1 時間以上たっていれば最新分の同期が自動で走る
+- 同期は「全期間」（年一覧の全年）と「最新分」（直近 90 日の未確定の注文だけを読み直し、DB と同じ内容のページに達したらその年を終える）の 2 種類。ページごとに IndexedDB へ `orderId` で upsert するため、途中で止まっても取得済みの分は残る。ページ間に 1.5 秒＋ゆらぎの待機を入れる（`WAIT_MS`）。ダッシュボードを開いたとき、前回の同期の試行から 1 時間以上たっていれば最新分の同期が自動で走る
 - グラフは SVG でなく HTML/CSS で描く（viewBox の縮小で文字が 1rem 未満になるのを避けるため）
 
 ## 配布

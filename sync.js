@@ -7,7 +7,8 @@ const OrderSync = (() => {
   const WAIT_MS = 1500;          // ページ取得の間隔（Amazon に負荷をかけない）
   const WAIT_JITTER_MS = 500;
   const MAX_PAGES_PER_YEAR = 100; // ページ送りが止まらない場合の安全弁
-  const FINAL_STATUSES = new Set(['delivered', 'cancelled', 'returned']);
+  const FINAL_STATUSES = new Set(['delivered', 'cancelled', 'returned', 'closed']);
+  const RECHECK_DAYS = 90;        // 最新分の同期で、確定していない注文を読み直す期間
 
   class SyncError extends Error {}
 
@@ -53,12 +54,19 @@ const OrderSync = (() => {
     return page;
   }
 
+  // 最新分の同期で読み直す注文：確定していない（未配達・不明）注文のうち、注文日か配達予定日が since 以降のもの
+  // 古い「不明」の注文まで読み直すと、そこまでの全ページを毎回読むことになる
+  function needsRecheck(order, since) {
+    if (FINAL_STATUSES.has(order.status)) return false;
+    return order.orderDate >= since || (!!order.expectedDate && order.expectedDate >= since);
+  }
+
   // 最新分の同期で、このページより古いページを読む必要があるか
-  // DB と同じ内容で確定済み（配達済み・キャンセルなど）の注文だけなら、そのページで止めてよい
-  function isSettled(orders, known) {
+  // DB と同じ内容で、読み直す対象でもない注文だけなら、そのページで止めてよい
+  function isSettled(orders, known, recheckIds) {
     return orders.length > 0 && orders.every((o) => {
       const prev = known.get(o.orderId);
-      return prev && FINAL_STATUSES.has(prev.status) && prev.status === o.status && prev.total === o.total;
+      return prev && !recheckIds.has(o.orderId) && prev.status === o.status && prev.total === o.total;
     });
   }
 
@@ -66,8 +74,17 @@ const OrderSync = (() => {
   // onProgress({ year, page, saved, message }) で進み具合を通知する
   async function run({ mode, onProgress = () => {}, signal }) {
     const known = new Map((await OrderDB.getAllOrders()).map((o) => [o.orderId, o]));
-    const pendingDates = [...known.values()].filter((o) => !FINAL_STATUSES.has(o.status)).map((o) => o.orderDate).sort();
-    const oldestPending = pendingDates[0] || null;
+    const sinceDate = new Date();
+    sinceDate.setDate(sinceDate.getDate() - RECHECK_DAYS);
+    const since = localIsoString(sinceDate).slice(0, 10);
+    const recheck = [...known.values()].filter((o) => needsRecheck(o, since));
+    const recheckIds = new Set(recheck.map((o) => o.orderId));
+    // 年ごとの、読み直す注文の最も古い注文日（その年はそこまで読み進める）
+    const oldestRecheck = new Map();
+    for (const o of recheck) {
+      const y = Number(o.orderDate.slice(0, 4));
+      if (!oldestRecheck.has(y) || o.orderDate < oldestRecheck.get(y)) oldestRecheck.set(y, o.orderDate);
+    }
 
     const currentYear = new Date().getFullYear();
     const summary = { pages: 0, saved: 0, errors: [] };
@@ -86,23 +103,23 @@ const OrderSync = (() => {
         requestCount++;
         summary.pages++;
 
-        // 1 ページ目で年の一覧が分かる。全期間なら全年、最新分なら未配達の注文がある年まで
+        // 1 ページ目で年の一覧が分かる。全期間なら全年
+        // 最新分なら、読み直す注文がある年と、読み直す期間に入る年（年明けに前年末の注文を拾うため）
         if (yi === 0 && pageNo === 1) {
           const listed = page.years.filter((y) => y < currentYear);
           if (mode === 'full') years = [currentYear, ...listed];
-          else if (oldestPending) years = [currentYear, ...listed.filter((y) => y >= Number(oldestPending.slice(0, 4)))];
+          else years = [currentYear, ...listed.filter((y) => oldestRecheck.has(y) || y >= Number(since.slice(0, 4)))];
         }
 
         if (page.orders.length > 0) await OrderDB.putOrders(page.orders);
         summary.saved += page.orders.length;
         summary.errors.push(...page.errors);
 
-        if (mode === 'recent' && isSettled(page.orders, known)) {
+        // 読み直す注文より古いページまで来たら、この年は終わり（次の年は years にあれば読む）
+        if (mode === 'recent' && isSettled(page.orders, known, recheckIds)) {
           const pageOldest = page.orders.map((o) => o.orderDate).sort()[0];
-          if (!oldestPending || pageOldest < oldestPending) {
-            years = years.slice(0, yi + 1); // これより古い年も読まない
-            break;
-          }
+          const until = oldestRecheck.get(year);
+          if (!until || pageOldest < until) break;
         }
         for (const o of page.orders) known.set(o.orderId, o);
         url = page.nextUrl ? ensureNoJs(page.nextUrl) : null;

@@ -19,12 +19,13 @@ const AmazonParser = (() => {
     shipmentPrimary: '.delivery-box__primary-text',
     shipmentSecondary: '.yohtmlc-shipment-status-secondaryText',
     productLink: 'a[href*="/dp/"], a[href*="/gp/product/"]',
+    productTitle: '.yohtmlc-product-title',
     nextPage: '.a-pagination li.a-last:not(.a-disabled) a[href]',
     yearOption: 'select#time-filter option[value^="year-"]',
   };
 
-  // ヘッダの見出し文言
-  const LABELS = { orderDate: '注文日', total: '合計' };
+  // ヘッダの見出し文言。サブスクリプションの課金（注文番号 D01-）は注文日の代わりに課金日が出る
+  const LABELS = { orderDate: ['注文日', 'サブスクリプション課金日'], total: '合計' };
 
   // カードの data-csa-c-slot-id は "amzn1.yourorders.order-card.<注文番号>"
   const SLOT_ID_RE = /order-card\.([0-9A-Z-]+)$/;
@@ -62,11 +63,15 @@ const AmazonParser = (() => {
   }
 
   // 配送ボックスの表示文言 → { status, date }
-  // status: delivered / pending（未配達。準備中と配送中は一覧ページでは区別できない）/ cancelled / returned / unknown
+  // status: delivered / pending（未配達。準備中と配送中は一覧ページでは区別できない）/ cancelled / returned
+  //         / closed（配達状況が表示されない古い注文と、交換などの手続きが済んだもの）/ unknown
   // date: delivered なら配達日、pending なら配達予定日
   function parseShipmentStatus(text, orderDate, fetchedDate) {
+    // 注文から数か月以上たった古い注文は文言が空になる。キャンセルは古くても「キャンセル済み」と出る
+    if (!text) return { status: 'closed', date: null };
     if (/キャンセル/.test(text)) return { status: 'cancelled', date: null };
     if (/返品|返金/.test(text)) return { status: 'returned', date: null };
+    if (/交換|サービスを完了/.test(text)) return { status: 'closed', date: null };
 
     const delivered = /お届け済み|配達済み/.test(text);
     const md = /(\d{1,2})月(\d{1,2})日/.exec(text);
@@ -77,13 +82,14 @@ const AmazonParser = (() => {
     if (delivered) return { status: 'delivered', date: null };
 
     // 以下は配達予定。日付は取得日を基準に求める
-    if (/今日/.test(text)) return { status: 'pending', date: fetchedDate };
+    if (/今日|本日/.test(text)) return { status: 'pending', date: fetchedDate };
     if (/明日/.test(text)) return { status: 'pending', date: addDays(fetchedDate, 1) };
     const wd = /([日月火水木金土])曜日/.exec(text);
     if (wd) {
-      // 「金曜日にお届け」は直近のその曜日とみなす（今日なら「今日」と表示されるはずなので翌日以降）
+      // 「金曜日にお届け」は今日から 6 日後までの、直近のその曜日とみなす
+      // 当日のお届けも「今日」でなく曜日で表示されるので、今日と同じ曜日なら今日
       const today = new Date(`${fetchedDate}T00:00:00`).getDay();
-      const offset = ((WEEKDAYS.indexOf(wd[1]) - today + 7) % 7) || 7;
+      const offset = (WEEKDAYS.indexOf(wd[1]) - today + 7) % 7;
       return { status: 'pending', date: addDays(fetchedDate, offset) };
     }
     if (/お届け|発送|出荷|配送/.test(text)) return { status: 'pending', date: null };
@@ -100,7 +106,8 @@ const AmazonParser = (() => {
     if (pending.length > 0) return { status: 'pending', deliveredDate: null, expectedDate: latest(pending) };
     if (active.some((s) => s.status === 'unknown') || active.length === 0) return { status: 'unknown', deliveredDate: null, expectedDate: null };
     if (active.some((s) => s.status === 'returned')) return { status: 'returned', deliveredDate: latest(active), expectedDate: null };
-    return { status: 'delivered', deliveredDate: latest(active), expectedDate: null };
+    if (active.some((s) => s.status === 'delivered')) return { status: 'delivered', deliveredDate: latest(active), expectedDate: null };
+    return { status: 'closed', deliveredDate: null, expectedDate: null };
   }
 
   // 商品は /dp/<ASIN> へのリンクを ASIN ごとにまとめて取る
@@ -121,6 +128,12 @@ const AmazonParser = (() => {
       if (text.length > item.title.length) item.title = text;
       items.set(asin, item);
     }
+    // デジタル注文（アプリなど）は商品ページへのリンクがなく、商品名だけ出る
+    for (const el of root.querySelectorAll(SELECTORS.productTitle)) {
+      const title = clean(el.textContent);
+      if (!title || el.querySelector(SELECTORS.productLink)) continue;
+      if (!items.has(title)) items.set(title, { title, asin: null, url: null, imageUrl: null });
+    }
     return [...items.values()];
   }
 
@@ -140,7 +153,7 @@ const AmazonParser = (() => {
     if (!orderId) throw new Error('注文番号が見つからない');
 
     const header = parseHeader(card);
-    const orderDate = parseJpDate(header[LABELS.orderDate]);
+    const orderDate = parseJpDate(header[LABELS.orderDate.find((label) => header[label])]);
     if (!orderDate) throw new Error(`注文日を解析できない（${orderId}）`);
 
     const fetchedDate = fetchedAt.slice(0, 10);

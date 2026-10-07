@@ -32,6 +32,13 @@ async function main() {
   const realSetTimeout = w.setTimeout.bind(w);
   w.setTimeout = (fn) => realSetTimeout(fn, 0);
   w.HTMLElement.prototype.scrollIntoView = () => {};
+  // 今日をサンプルの取得日に固定する（今月の支出や、最新分の同期で読み直す期間が実行日で変わらないように）
+  const RealDate = w.Date;
+  const NOW = RealDate.parse('2026-10-01T12:00:00+09:00');
+  w.Date = class extends RealDate {
+    constructor(...args) { super(...(args.length ? args : [NOW])); }
+    static now() { return NOW; }
+  };
 
   let requests = [];
   let route = null; // テストごとに差し替える
@@ -123,7 +130,7 @@ async function main() {
   w.document.dispatchEvent(new w.Event('visibilitychange'));
   await flush();
   assert.strictEqual(requests.length, 0, '直前に試行したので自動同期しない');
-  await OrderDB.setMeta('lastSyncAttempt', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString());
+  await OrderDB.setMeta('lastSyncAttempt', new RealDate(NOW - 2 * 60 * 60 * 1000).toISOString());
   w.document.dispatchEvent(new w.Event('visibilitychange'));
   w.document.dispatchEvent(new w.Event('visibilitychange')); // 連続しても 1 回だけ
   await flush();
@@ -131,6 +138,21 @@ async function main() {
   console.log('auto: requests', requests.length, '/', $('sync-status').textContent);
   assert.strictEqual(requests.length, 2);
   assert.strictEqual($('sync-error').hidden, true);
+
+  // 7. 最新分で読み直すのは、注文日か配達予定日が最近の未確定の注文だけ
+  //    古い「不明」や、予定日を大きく過ぎた未配達では古いページを読みに行かない。配達予定がまだ先の予約注文は、その年を読む
+  const testOrder = (orderId, orderDate, status, expectedDate) => ({ orderId, orderDate, status, expectedDate, total: 1000, statusText: '', deliveredDate: null, items: [], shipments: [], detailUrl: null, fetchedAt: '' });
+  await OrderDB.putOrders([
+    testOrder('TEST-OLD-UNKNOWN', '2019-05-01', 'unknown', null),
+    testOrder('TEST-STALE-PENDING', '2026-05-01', 'pending', '2026-05-05'),
+    testOrder('TEST-PREORDER', '2025-03-01', 'pending', '2026-12-01'),
+  ]);
+  requests = [];
+  $('sync-recent').click();
+  await waitSync();
+  const fetched = requests.map((u) => `${new URL(u).searchParams.get('timeFilter')}:${new URL(u).searchParams.get('page') || '0'}`);
+  console.log('recheck: requests', fetched);
+  assert.deepStrictEqual(fetched, ['year-2026:0', 'year-2026:1', 'year-2025:0']);
 
   console.log('dashboard tests ok');
 }

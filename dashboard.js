@@ -165,6 +165,7 @@ const STATUS_TEXT = {
   pending: '未配達',
   cancelled: 'キャンセル',
   returned: '返品',
+  closed: '完了', // Amazon が配達状況を表示しない古い注文など
   unknown: '不明',
 };
 
@@ -184,7 +185,9 @@ function itemsCell(order, limit = 3) {
   return h('div', { class: 'items' },
     shown.map((item) => h('div', { class: 'item' },
       item.imageUrl ? h('img', { src: item.imageUrl, alt: '', loading: 'lazy' }) : null,
-      h('a', { href: item.url, target: '_blank', rel: 'noopener', text: item.title || item.asin }))),
+      item.url
+        ? h('a', { href: item.url, target: '_blank', rel: 'noopener', text: item.title || item.asin })
+        : h('span', { text: item.title }))), // デジタル注文の商品はリンクがない
     order.items.length > limit ? h('span', { class: 'more', text: `ほか ${order.items.length - limit} 点` }) : null);
 }
 

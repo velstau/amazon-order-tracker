@@ -21,8 +21,15 @@ for (const f of samples) {
 const assert = require('assert');
 assert.strictEqual(P.parseShipmentStatus('1月5日にお届け済み', '2026-12-28', '2027-01-06').date, '2027-01-05');
 assert.strictEqual(P.parseShipmentStatus('金曜日にお届け', '2026-09-29', '2026-10-01').date, '2026-10-02');
+assert.strictEqual(P.parseShipmentStatus('木曜日にお届け', '2026-10-06', '2026-10-08').date, '2026-10-08'); // 当日も曜日で表示される
+assert.strictEqual(P.parseShipmentStatus('水曜日にお届け', '2026-10-06', '2026-10-08').date, '2026-10-14');
 assert.strictEqual(P.parseShipmentStatus('明日お届け', '2026-09-29', '2026-10-01').date, '2026-10-02');
 assert.strictEqual(P.parseShipmentStatus('キャンセル済み', '2026-08-31', '2026-10-01').status, 'cancelled');
+assert.strictEqual(P.parseShipmentStatus('', '2020-01-10', '2026-10-08').status, 'closed'); // 古い注文は文言が空
+assert.strictEqual(P.parseShipmentStatus('交換完了', '2020-01-10', '2026-10-08').status, 'closed');
+assert.strictEqual(P.parseShipmentStatus('本日到着予定', '2026-10-06', '2026-10-08').date, '2026-10-08');
+assert.strictEqual(P.summarizeShipments([{ status: 'closed', date: null }, { status: 'returned', date: null }]).status, 'returned');
+assert.strictEqual(P.summarizeShipments([{ status: 'closed', date: null }, { status: 'closed', date: null }]).status, 'closed');
 assert.strictEqual(P.parseYen('￥2,133'), 2133);
 assert.strictEqual(P.summarizeShipments([{ status: 'delivered', date: '2026-09-30' }, { status: 'pending', date: '2026-10-02' }]).status, 'pending');
 assert.strictEqual(P.summarizeShipments([{ status: 'delivered', date: '2026-09-30' }, { status: 'cancelled', date: null }]).status, 'delivered');

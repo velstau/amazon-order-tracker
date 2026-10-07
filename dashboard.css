@@ -249,6 +249,6 @@ th { color: var(--color-text-secondary); font-weight: normal; white-space: nowra
 /* 状態は色だけでなく文言で示す */
 .status { white-space: nowrap; }
 .status--pending { font-weight: bold; }
-.status--cancelled, .status--returned { color: var(--color-text-secondary); }
+.status--cancelled, .status--returned, .status--closed { color: var(--color-text-secondary); }
 .status__detail { display: block; color: var(--color-text-secondary); white-space: normal; }
 .cancelled-amount { text-decoration: line-through; color: var(--color-text-secondary); }
