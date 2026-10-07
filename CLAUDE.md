@@ -42,6 +42,6 @@ docker run --rm -v "$PWD":/src:ro node:24-alpine sh -c 'cp -r /src /w && cd /w \
 ## 配布
 
 - 配布は Chrome ウェブストアではなく、vel.works の紹介ページ（https://vel.works/chrome_ext/amazon_order_tracker/）からの zip。`python3 scripts/release.py [--publish]` で `dist/amazon_order_tracker-<版>.zip` を作る（LICENSE は入れ、テスト・文書・スクリプトは入れない）。`--publish` で vel.works の紹介ページのフォルダ（`/var/docker/docker-shared/dev-server-php8/vel.works/chrome_ext/amazon_order_tracker/`）に置き、古い zip を消す
-- 版を上げるときに直すもの: `manifest.json` の `version`、`CHANGELOG.md`、vel.works の紹介ページ（`<!-- download:start -->` と `<!-- changelog:start -->` の欄）と `vel.works/_build/data/catalog.json` の version。そのあと vel.works をビルドして `chrome_ext` と `top` を本番へ反映する（手順は `dev-server-php8/CLAUDE.md`）。git では `v<版>` のタグを付けて push する
+- 版を上げるときに直すもの: `manifest.json` の `version`、`CHANGELOG.md`、vel.works の紹介ページ（`<!-- download:start -->` と `<!-- changelog:start -->` の欄、仕様の札の「バージョン」の `<dd>`）と `vel.works/_build/data/catalog.json` の version。仕様の札の版は catalog.json からビルドで入らないので手で直す。そのあと vel.works をビルドして `chrome_ext` と `top` を本番へ反映する（手順は `dev-server-php8/CLAUDE.md`）。git では `v<版>` のタグを付けて push する
 - **manifest の `key` を消したり変えたりしない。** 拡張 ID を固定する公開鍵で、変わると利用者の保存データが消える。対応する秘密鍵はリポジトリの外（`~/.config/velworks/chromeext-keys/`）にあり、ウェブストアに出すときだけ使う
 - 公開リポジトリ（GitHub）。コミットの前に、追跡対象に個人情報（実データ、個人のメールアドレスなど）が入っていないか確かめる（開発サーバー上のパスは作業に必要なので可。ホスト名・IP アドレス・認証情報は不可）。作者は `velstau <velstau@users.noreply.github.com>`（リポジトリの設定）
